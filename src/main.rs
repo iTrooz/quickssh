@@ -234,7 +234,10 @@ impl server::Handler for Server {
         user: &str,
         public_key: &key::PublicKey,
     ) -> Result<(Self, Auth), Self::Error> {
-        log::info!("auth_publickey: user: {user} public_key: {}", public_key.public_key_base64());
+        log::info!(
+            "auth_publickey: user: {user} public_key: {}",
+            public_key.public_key_base64()
+        );
         let public_key_is_valid = false; // TODO
         if public_key_is_valid {
             Ok((self, server::Auth::Accept))

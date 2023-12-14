@@ -14,6 +14,15 @@ pub struct Command {
 }
 
 pub async fn run(cmd: Command) -> anyhow::Result<()> {
+    // init logger
+    let mut tmp = env_logger::builder();
+    let mut log_builder = &mut tmp;
+    if cmd.verbose {
+        log::debug!("Debug logging enabled");
+        log_builder = log_builder.filter_level(log::LevelFilter::Debug);
+    }
+    log_builder.init();
+
     let config = russh::server::Config {
         methods: MethodSet::PASSWORD | MethodSet::PUBLICKEY,
         inactivity_timeout: Some(std::time::Duration::from_secs(60 * 60)),
@@ -30,15 +39,6 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
         channel_pty_writers: Arc::new(Mutex::new(HashMap::new())),
         id: 0,
     };
-
-    // init logger
-    let mut tmp = env_logger::builder();
-    let mut log_builder = &mut tmp;
-    if cmd.verbose {
-        log::debug!("Debug logging enabled");
-        log_builder = log_builder.filter_level(log::LevelFilter::Debug);
-    }
-    log_builder.init();
 
     log::info!("Listening on 0.0.0.0:2222");
     russh::server::run(Arc::new(config), ("0.0.0.0", 2222), server).await?;

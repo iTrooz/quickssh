@@ -39,8 +39,10 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
     let mut tmp = env_logger::builder();
     let mut log_builder = &mut tmp;
     if cmd.verbose {
-        log::debug!("Debug logging enabled");
         log_builder = log_builder.filter_level(log::LevelFilter::Debug);
+        log::debug!("Debug logging enabled");
+    } else {
+        log_builder = log_builder.filter_level(log::LevelFilter::Info);
     }
     log_builder.init();
 

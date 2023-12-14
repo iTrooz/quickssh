@@ -1,7 +1,8 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fs::File, sync::Arc};
 
 use clap::{command, Parser};
 use russh::MethodSet;
+use russh_keys::key::KeyPair;
 use tokio::sync::Mutex;
 
 use crate::ssh;
@@ -11,6 +12,26 @@ use crate::ssh;
 pub struct Command {
     #[arg(short, long)]
     pub verbose: bool,
+}
+
+fn init_server_key() -> anyhow::Result<KeyPair> {
+    let xdg = xdg::BaseDirectories::with_prefix("quickssh")?;
+    let existing_prv_key_path = xdg.find_config_file("private.key");
+    if let Some(existing_prv_key_path) = existing_prv_key_path {
+        let keypair = russh_keys::load_secret_key(&existing_prv_key_path, None)?;
+        log::debug!("Loaded private key from {}", existing_prv_key_path.display());
+        Ok(keypair)
+    } else {
+        let keypair = russh_keys::key::KeyPair::generate_ed25519().unwrap();
+
+        let path = xdg.place_config_file("private.key")?;
+        let f = File::create(&path)?;
+        russh_keys::encode_pkcs8_pem(&keypair, f)?;
+
+        log::info!("Created new ed25519 private key at {}", path.display());
+
+        Ok(keypair)
+    }
 }
 
 pub async fn run(cmd: Command) -> anyhow::Result<()> {
@@ -23,17 +44,17 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
     }
     log_builder.init();
 
+    let keypair = init_server_key()?;
+
     let config = russh::server::Config {
         methods: MethodSet::PASSWORD | MethodSet::PUBLICKEY,
         inactivity_timeout: Some(std::time::Duration::from_secs(60 * 60)),
         auth_rejection_time: std::time::Duration::from_secs(5),
         auth_rejection_time_initial: Some(std::time::Duration::from_secs(0)),
-        keys: vec![
-            // TODO: only do this in dev
-            russh_keys::key::KeyPair::generate_ed25519().unwrap(),
-        ],
+        keys: vec![keypair],
         ..Default::default()
     };
+
     let server = ssh::Server {
         clients: Arc::new(Mutex::new(HashMap::new())),
         channel_pty_writers: Arc::new(Mutex::new(HashMap::new())),

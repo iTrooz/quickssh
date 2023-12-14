@@ -25,6 +25,7 @@ async fn main() -> anyhow::Result<()> {
         .filter_level(log::LevelFilter::Debug)
         .init();
     let config = russh::server::Config {
+        methods: MethodSet::PASSWORD | MethodSet::PUBLICKEY,
         inactivity_timeout: Some(std::time::Duration::from_secs(60 * 60)),
         auth_rejection_time: std::time::Duration::from_secs(5),
         auth_rejection_time_initial: Some(std::time::Duration::from_secs(0)),

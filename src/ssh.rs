@@ -14,6 +14,7 @@ const PASSWORD: &str = "test";
 
 #[derive(Clone)]
 pub struct Server {
+    #[allow(clippy::type_complexity)]
     pub clients: Arc<Mutex<HashMap<(usize, ChannelId), Channel<Msg>>>>,
     pub channel_pty_writers: Arc<Mutex<HashMap<ChannelId, OwnedWritePty>>>,
     pub id: usize,

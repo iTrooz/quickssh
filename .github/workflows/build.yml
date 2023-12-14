@@ -59,9 +59,7 @@ jobs:
       matrix:
         include:
           - runs-on: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
           - runs-on: windows-latest
-            target: x86_64-pc-windows-msvc
 
     steps:
       - name: Checkout repository
@@ -78,37 +76,21 @@ jobs:
           key: test-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: test-${{ runner.os }}-cargo
           
-      # Calling rustup show will install the toolchain in rust-toolchain
       - name: Install toolchain
-        id: rustup
         run: rustup show
 
-      # Install cargo-make which will drive the build
-      - name: Install cargo-make
-        uses: davidB/rust-cargo-make@v1
-        with:
-          version: 0.36.2
-
-      - name: Fetch dependencies
-        run: cargo fetch
-      
       # Run tests
       - name: Run tests
-        shell: bash
         run: |
-          if cargo make --list-all-steps --output-format autocomplete --quiet | grep -E '(^|\W)ci-test($|\W)' >/dev/null 2>&1; then
-            cargo make ci-test
-          else
-            echo "No test task found in Makefile.toml."
-          fi
+          cargo test
 
-      - name: Upload coverage to codecov.io
-        uses: codecov/codecov-action@v3
-        with:
-          files: coverage/info.lcov
-          fail_ci_if_error: false # upload can randomly fail, see https://github.com/codecov/codecov-action/issues/557
-          token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true
+      # - name: Upload coverage to codecov.io
+      #   uses: codecov/codecov-action@v3
+      #   with:
+      #     files: coverage/info.lcov
+      #     fail_ci_if_error: false # upload can randomly fail, see https://github.com/codecov/codecov-action/issues/557
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     verbose: true
 
   build:
     runs-on: ${{ matrix.runs-on }}
@@ -119,10 +101,8 @@ jobs:
         include:
           - name: Linux
             runs-on: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
           - name: Windows
             runs-on: windows-latest
-            target: x86_64-pc-windows-msvc
 
     steps:
       - name: Checkout repository
@@ -147,27 +127,16 @@ jobs:
           key: build-${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: build-${{ runner.os }}-rust
 
-      # Calling rustup show will install the toolchain in rust-toolchain
       - name: Install toolchain
-        id: rustup
         run: rustup show
 
-      # Install cargo-make which will drive the build
-      - name: Install cargo-make
-        uses: davidB/rust-cargo-make@v1
-        with:
-          version: 0.36.2
+      - name: Build binary
+        run: cargo build --release
 
-      - name: Fetch dependencies
-        run: cargo fetch
-
-      # Run binary build
-      - name: Build binaries
-        run: cargo make ci-build
-
-      # Upload artifacts
-      - name: Upload binaries from dist/
+      - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.name }}
-          path: dist/
+          path: |
+            target/release/quickssh
+            target/release/quickssh.exe

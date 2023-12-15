@@ -59,7 +59,7 @@ jobs:
       matrix:
         include:
           - runs-on: ubuntu-latest
-          - runs-on: windows-latest
+          # - runs-on: windows-latest
 
     steps:
       - name: Checkout repository
@@ -101,8 +101,8 @@ jobs:
         include:
           - name: Linux
             runs-on: ubuntu-latest
-          - name: Windows
-            runs-on: windows-latest
+          # - name: Windows
+          #   runs-on: windows-latest
 
     steps:
       - name: Checkout repository

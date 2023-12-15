@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use pty_process::OwnedWritePty;
-use russh::server::{Auth, Msg, Response, Session};
+use russh::server::{Auth, Msg, Session};
 use russh::*;
 use russh_keys::*;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -230,21 +230,6 @@ impl server::Handler for Server {
                 },
             ))
         }
-    }
-
-    async fn auth_keyboard_interactive(
-        self,
-        user: &str,
-        submethods: &str,
-        _response: Option<Response<'async_trait>>,
-    ) -> Result<(Self, Auth), Self::Error> {
-        log::info!("auth_keyboard_interactive: user: {user} submethods: {submethods}");
-        Ok((
-            self,
-            Auth::Reject {
-                proceed_with_methods: Some(MethodSet::PUBLICKEY | MethodSet::PASSWORD),
-            },
-        ))
     }
 
     async fn auth_none(self, user: &str) -> Result<(Self, Auth), Self::Error> {

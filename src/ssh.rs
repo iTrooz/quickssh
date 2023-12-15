@@ -9,8 +9,6 @@ use russh_keys::*;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 
-const PASSWORD: &str = "test";
-
 #[derive(Clone)]
 pub struct Server {
     #[allow(clippy::type_complexity)]
@@ -23,6 +21,7 @@ pub struct Server {
 #[derive(Clone)]
 pub struct ServerOptions {
     pub user: String,
+    pub password: Option<String>,
 }
 
 impl server::Server for Server {
@@ -244,17 +243,17 @@ impl server::Handler for Server {
 
     async fn auth_password(self, user: &str, password: &str) -> Result<(Self, Auth), Self::Error> {
         log::info!("auth_password: credentials: {}, {}", user, password);
-        let password_is_valid = user == self.options.user && password == PASSWORD;
-        if password_is_valid {
-            Ok((self, Auth::Accept))
-        } else {
-            Ok((
-                self,
-                Auth::Reject {
-                    proceed_with_methods: None,
-                },
-            ))
+        if let Some(ref right_password) = self.options.password {
+            if user == self.options.user && password == right_password {
+                return Ok((self, Auth::Accept));
+            }
         }
+        Ok((
+            self,
+            Auth::Reject {
+                proceed_with_methods: None,
+            },
+        ))
     }
 
     async fn channel_close(

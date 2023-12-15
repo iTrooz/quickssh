@@ -14,6 +14,8 @@ pub struct Command {
     pub verbose: bool,
     #[arg(short, long)]
     pub user: Option<String>,
+    #[arg(short, long)]
+    pub password: Option<String>,
 }
 
 fn init_server_key() -> anyhow::Result<KeyPair> {
@@ -67,10 +69,19 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
 
     let options = ssh::ServerOptions {
         user: cmd.user.unwrap_or(crate::utils::get_username()?),
+        password: cmd.password,
     };
 
     log::info!("Listening on 0.0.0.0:2222");
     log::info!("User is {}", options.user);
+    log::info!(
+        "Password is {}",
+        if let Some(ref password) = options.password {
+            password
+        } else {
+            "unset"
+        }
+    );
 
     let server = ssh::Server {
         clients: Arc::new(Mutex::new(HashMap::new())),

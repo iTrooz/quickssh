@@ -90,6 +90,8 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
         options,
     };
 
+    println!();
+
     russh::server::run(Arc::new(config), ("0.0.0.0", 2222), server).await?;
     Ok(())
 }

@@ -1,9 +1,9 @@
 use std::fs::File;
 
-use russh_keys::key::KeyPair;
+use log::warn;
+use russh_keys::key::{KeyPair, PublicKey};
 
 use crate::{cli::Command, ssh};
-
 
 fn init_server_key() -> anyhow::Result<KeyPair> {
     let xdg = xdg::BaseDirectories::with_prefix("quickssh")?;
@@ -16,7 +16,7 @@ fn init_server_key() -> anyhow::Result<KeyPair> {
         );
         Ok(keypair)
     } else {
-        let keypair = russh_keys::key::KeyPair::generate_ed25519().unwrap();
+        let keypair = KeyPair::generate_ed25519().unwrap();
 
         let path = xdg.place_config_file("private.key")?;
         let f = File::create(&path)?;
@@ -25,6 +25,23 @@ fn init_server_key() -> anyhow::Result<KeyPair> {
         log::info!("Created new ed25519 private key at {}", path.display());
 
         Ok(keypair)
+    }
+}
+
+fn read_authorized_keys() -> anyhow::Result<Vec<PublicKey>> {
+    let xdg = xdg::BaseDirectories::with_prefix("quickssh")?;
+    let path = xdg.find_config_file("authorized_keys");
+    if let Some(existing_path) = path {
+        let mut keys: Vec<PublicKey> = vec![];
+        for (i, line) in std::fs::read_to_string(existing_path)?.lines().enumerate() {
+            match russh_keys::parse_public_key_base64(line) {
+                Ok(key) => keys.push(key),
+                Err(err) => warn!("Failed to parse key from authorized_keys:{} : {}", i, err),
+            };
+        }
+        Ok(keys)
+    } else {
+        Ok(vec![])
     }
 }
 
@@ -40,15 +57,23 @@ fn init_logger(verbose: bool) {
     log_builder.init();
 }
 
-
 pub async fn run(cmd: Command) -> anyhow::Result<()> {
     init_logger(cmd.verbose);
 
     let keypair = init_server_key()?;
 
+    let mut pubkeys = read_authorized_keys()?;
+    for (i, key) in cmd.pubkey.iter().enumerate() {
+        match russh_keys::parse_public_key_base64(key) {
+            Ok(key) => pubkeys.push(key),
+            Err(err) => warn!("Failed to parse key from authorized_keys:{} : {}", i, err),
+        };
+    }
+
     let options = ssh::ServerOptions {
         user: cmd.user.unwrap_or(crate::utils::get_username()?),
         password: cmd.password,
+        pubkeys,
     };
 
     log::info!("Listening on 0.0.0.0:2222");
@@ -61,6 +86,7 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
             "unset"
         }
     );
+    log::info!("{} public key(s) loaded", options.pubkeys.len());
 
     println!();
 

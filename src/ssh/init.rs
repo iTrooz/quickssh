@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use pty_process::OwnedWritePty;
 use russh::{server::Msg, Channel, ChannelId, MethodSet};
-use russh_keys::key::KeyPair;
+use russh_keys::key::{KeyPair, self};
 use tokio::sync::Mutex;
 
 #[derive(Clone)]
@@ -18,6 +18,7 @@ pub struct Server {
 pub struct ServerOptions {
     pub user: String,
     pub password: Option<String>,
+    pub pubkeys: Vec<key::PublicKey>,
 }
 
 pub async fn start_ssh_server(options: ServerOptions, keypair: KeyPair) -> anyhow::Result<()> {

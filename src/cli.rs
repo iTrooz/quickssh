@@ -9,4 +9,7 @@ pub struct Command {
     pub user: Option<String>,
     #[arg(short, long)]
     pub password: Option<String>,
+    // public keys that can be used to connect
+    #[arg(long)]
+    pub pubkey: Vec<String>,
 }

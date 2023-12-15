@@ -232,7 +232,7 @@ impl server::Handler for Server {
     }
 
     async fn auth_none(self, user: &str) -> Result<(Self, Auth), Self::Error> {
-        log::info!("auth_none: user: {user}");
+        log::debug!("Got authentication attempt (type none) from {user}");
         Ok((
             self,
             Auth::Reject {

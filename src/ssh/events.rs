@@ -200,7 +200,7 @@ impl server::Handler for Server {
             "auth_publickey: user: {user} public_key: {}",
             public_key.public_key_base64()
         );
-        let public_key_is_valid = false; // TODO
+        let public_key_is_valid = self.options.pubkeys.contains(public_key);
         if public_key_is_valid {
             Ok((self, server::Auth::Accept))
         } else {

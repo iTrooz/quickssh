@@ -33,7 +33,7 @@ fn parse_key(full_key: &str) -> anyhow::Result<PublicKey> {
     match (split.next(), split.next()) {
         (Some(_), Some(key)) => Ok(russh_keys::parse_public_key_base64(key)?),
         (Some(key), None) => Ok(russh_keys::parse_public_key_base64(key)?),
-        _ => anyhow::bail!("Failed to parse key {full_key}")
+        _ => anyhow::bail!("Failed to parse key {full_key}"),
     }
 }
 

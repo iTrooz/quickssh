@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use pty_process::OwnedWritePty;
 use russh::{server::Msg, Channel, ChannelId, MethodSet};
-use russh_keys::key::{KeyPair, self};
+use russh_keys::key::{self, KeyPair};
 use tokio::sync::Mutex;
 
 #[derive(Clone)]

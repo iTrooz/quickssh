@@ -272,7 +272,7 @@ impl server::Handler for Server {
         channel_id: ChannelId,
         session: Session,
     ) -> Result<(Self, Session), Self::Error> {
-        log::info!("channel_close channel_id = {channel_id:?}");
+        log::debug!("channel_close channel_id = {channel_id:?}");
         // TODO: cleanup
         Ok((self, session))
     }
@@ -283,11 +283,8 @@ impl server::Handler for Server {
         data: &[u8],
         session: Session,
     ) -> Result<(Self, Session), Self::Error> {
-        // session_handle.data() -> pty_writer.write()
-        log::info!("data channel_id = {channel_id} data = {data:02x?}");
         let mut channel_pty_writers = self.channel_pty_writers.lock().await;
         if let Some(pty_writer) = channel_pty_writers.get_mut(&channel_id) {
-            log::info!("pty_writer: data = {data:02x?}");
             pty_writer
                 .write_all(data)
                 .await

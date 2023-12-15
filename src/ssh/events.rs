@@ -1,28 +1,10 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
 use async_trait::async_trait;
-use pty_process::OwnedWritePty;
 use russh::server::{Auth, Msg, Session};
 use russh::*;
 use russh_keys::*;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::sync::Mutex;
 
-#[derive(Clone)]
-pub struct Server {
-    #[allow(clippy::type_complexity)]
-    pub clients: Arc<Mutex<HashMap<(usize, ChannelId), Channel<Msg>>>>,
-    pub channel_pty_writers: Arc<Mutex<HashMap<ChannelId, OwnedWritePty>>>,
-    pub id: usize,
-    pub options: ServerOptions,
-}
-
-#[derive(Clone)]
-pub struct ServerOptions {
-    pub user: String,
-    pub password: Option<String>,
-}
+use super::Server;
 
 impl server::Server for Server {
     type Handler = Self;

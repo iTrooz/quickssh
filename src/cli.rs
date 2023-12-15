@@ -69,6 +69,9 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
         user: cmd.user.unwrap_or(crate::utils::get_username()?),
     };
 
+    log::info!("Listening on 0.0.0.0:2222");
+    log::info!("User is {}", options.user);
+
     let server = ssh::Server {
         clients: Arc::new(Mutex::new(HashMap::new())),
         channel_pty_writers: Arc::new(Mutex::new(HashMap::new())),
@@ -76,7 +79,6 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
         options,
     };
 
-    log::info!("Listening on 0.0.0.0:2222");
     russh::server::run(Arc::new(config), ("0.0.0.0", 2222), server).await?;
     Ok(())
 }

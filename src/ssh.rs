@@ -22,8 +22,8 @@ pub struct Server {
 
 impl server::Server for Server {
     type Handler = Self;
-    fn new_client(&mut self, _: Option<std::net::SocketAddr>) -> Self {
-        log::info!("new client");
+    fn new_client(&mut self, addr: Option<std::net::SocketAddr>) -> Self {
+        log::info!("new client from {}", addr.unwrap());
         let s = self.clone();
         self.id += 1;
         s

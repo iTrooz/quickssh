@@ -2,6 +2,7 @@ use clap::Parser;
 
 pub mod cli;
 pub mod ssh;
+pub mod utils;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

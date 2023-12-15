@@ -9,7 +9,6 @@ use russh_keys::*;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 
-const USERNAME: &str = "test";
 const PASSWORD: &str = "test";
 
 #[derive(Clone)]
@@ -18,6 +17,12 @@ pub struct Server {
     pub clients: Arc<Mutex<HashMap<(usize, ChannelId), Channel<Msg>>>>,
     pub channel_pty_writers: Arc<Mutex<HashMap<ChannelId, OwnedWritePty>>>,
     pub id: usize,
+    pub options: ServerOptions,
+}
+
+#[derive(Clone)]
+pub struct ServerOptions {
+    pub user: String,
 }
 
 impl server::Server for Server {
@@ -254,7 +259,7 @@ impl server::Handler for Server {
 
     async fn auth_password(self, user: &str, password: &str) -> Result<(Self, Auth), Self::Error> {
         log::info!("auth_password: credentials: {}, {}", user, password);
-        let password_is_valid = user == USERNAME && password == PASSWORD;
+        let password_is_valid = user == self.options.user && password == PASSWORD;
         if password_is_valid {
             Ok((self, Auth::Accept))
         } else {

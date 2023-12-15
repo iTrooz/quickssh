@@ -5,13 +5,15 @@ use russh::MethodSet;
 use russh_keys::key::KeyPair;
 use tokio::sync::Mutex;
 
-use crate::ssh;
+use crate::ssh::{self};
 
 #[derive(Parser, Debug)]
 #[command(name = env!("CARGO_PKG_NAME"), author, about, version, long_about = None)]
 pub struct Command {
     #[arg(short, long)]
     pub verbose: bool,
+    #[arg(short, long)]
+    pub user: Option<String>,
 }
 
 fn init_server_key() -> anyhow::Result<KeyPair> {
@@ -63,10 +65,15 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
         ..Default::default()
     };
 
+    let options = ssh::ServerOptions {
+        user: cmd.user.unwrap_or(crate::utils::get_username()?),
+    };
+
     let server = ssh::Server {
         clients: Arc::new(Mutex::new(HashMap::new())),
         channel_pty_writers: Arc::new(Mutex::new(HashMap::new())),
         id: 0,
+        options,
     };
 
     log::info!("Listening on 0.0.0.0:2222");

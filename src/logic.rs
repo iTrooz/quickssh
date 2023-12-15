@@ -28,13 +28,22 @@ fn init_server_key() -> anyhow::Result<KeyPair> {
     }
 }
 
+fn parse_key(full_key: &str) -> anyhow::Result<PublicKey> {
+    let mut split = full_key.split_whitespace();
+    match (split.next(), split.next()) {
+        (Some(_), Some(key)) => Ok(russh_keys::parse_public_key_base64(key)?),
+        (Some(key), None) => Ok(russh_keys::parse_public_key_base64(key)?),
+        _ => anyhow::bail!("Failed to parse key {full_key}")
+    }
+}
+
 fn read_authorized_keys() -> anyhow::Result<Vec<PublicKey>> {
     let xdg = xdg::BaseDirectories::with_prefix("quickssh")?;
     let path = xdg.find_config_file("authorized_keys");
     if let Some(existing_path) = path {
         let mut keys: Vec<PublicKey> = vec![];
         for (i, line) in std::fs::read_to_string(existing_path)?.lines().enumerate() {
-            match russh_keys::parse_public_key_base64(line) {
+            match parse_key(line) {
                 Ok(key) => keys.push(key),
                 Err(err) => warn!("Failed to parse key from authorized_keys:{} : {}", i, err),
             };
@@ -64,7 +73,7 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
 
     let mut pubkeys = read_authorized_keys()?;
     for (i, key) in cmd.pubkey.iter().enumerate() {
-        match russh_keys::parse_public_key_base64(key) {
+        match parse_key(key) {
             Ok(key) => pubkeys.push(key),
             Err(err) => warn!("Failed to parse key from authorized_keys:{} : {}", i, err),
         };

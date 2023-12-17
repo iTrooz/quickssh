@@ -4,10 +4,23 @@ use log::info;
 use russh_sftp::protocol::{File, FileAttributes, Handle, Name, Status, StatusCode, Version};
 use std::collections::HashMap;
 
+enum ReadDirRequest {
+    Todo(String),
+    Done,
+}
+
+impl SftpSession {
+    fn new_readdir_handle(&mut self) -> String {
+        self.readdir_counter += 1;
+        self.readdir_counter.to_string()
+    }
+}
+
 #[derive(Default)]
 pub struct SftpSession {
     version: Option<u32>,
-    root_dir_read_done: bool,
+    readdir_requests: HashMap<String, ReadDirRequest>,
+    readdir_counter: u32,
 }
 
 #[async_trait]
@@ -44,29 +57,42 @@ impl russh_sftp::server::Handler for SftpSession {
 
     async fn opendir(&mut self, id: u32, path: String) -> Result<Handle, Self::Error> {
         info!("opendir: {}", path);
-        self.root_dir_read_done = false;
-        Ok(Handle { id, handle: path })
+        let handle = self.new_readdir_handle();
+        self.readdir_requests
+            .insert(handle.clone(), ReadDirRequest::Todo(path.clone()));
+        Ok(Handle { id, handle })
     }
 
     async fn readdir(&mut self, id: u32, handle: String) -> Result<Name, Self::Error> {
-        info!("readdir handle: {}", handle);
-        if handle == "/" && !self.root_dir_read_done {
-            self.root_dir_read_done = true;
-            return Ok(Name {
-                id,
-                files: vec![
-                    File {
-                        filename: "foo".to_string(),
+        info!("readdir handle: {}, id: {}", handle, id);
+
+        let request = self.readdir_requests.get_mut(&handle);
+        match request {
+            None => {
+                // TODO use SSH_FX_INVALID_HANDLE
+                Err(Self::Error::Failure)
+            }
+            Some(ReadDirRequest::Todo(path)) => {
+                let paths = std::fs::read_dir(path).unwrap();
+
+                let mut files: Vec<File> = vec![];
+                for path in paths {
+                    let path = path.unwrap();
+                    files.push(File {
+                        filename: path.file_name().into_string().unwrap(),
                         attrs: FileAttributes::default(),
-                    },
-                    File {
-                        filename: "bar".to_string(),
-                        attrs: FileAttributes::default(),
-                    },
-                ],
-            });
+                    });
+                }
+
+                *request.unwrap() = ReadDirRequest::Done;
+
+                Ok(Name { id, files })
+            }
+            Some(ReadDirRequest::Done) => {
+                self.readdir_requests.remove(&handle);
+                Ok(Name { id, files: vec![] })
+            }
         }
-        Ok(Name { id, files: vec![] })
     }
 
     async fn realpath(&mut self, id: u32, path: String) -> Result<Name, Self::Error> {

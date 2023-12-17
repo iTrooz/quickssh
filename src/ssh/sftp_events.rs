@@ -95,7 +95,18 @@ impl russh_sftp::server::Handler for SftpSession {
                 Err(Self::Error::Failure)
             }
             Some(ReadDirRequest::Todo(path)) => {
-                let paths = std::fs::read_dir(path).unwrap();
+                let paths_res = std::fs::read_dir(path);
+
+                let paths = match paths_res {
+                    Ok(paths) => paths,
+                    Err(ref err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
+                        return Err(StatusCode::PermissionDenied);
+                    }
+                    Err(ref err) => {
+                        log::error!("readdir({}, {}) failed: {}", id, handle, err);
+                        return Err(StatusCode::Failure);
+                    }
+                };
 
                 let mut files: Vec<File> = vec![];
                 for path in paths {

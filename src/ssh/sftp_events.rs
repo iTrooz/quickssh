@@ -122,7 +122,10 @@ impl russh_sftp::server::Handler for SftpSession {
         Ok(Name {
             id,
             files: vec![File {
-                filename: "/".to_string(),
+                filename: std::fs::canonicalize(path) // TODO replace this function, it doesn't have the behaviour the RFC wants
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string(),
                 attrs: FileAttributes::default(),
             }],
         })

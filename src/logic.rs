@@ -86,6 +86,8 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
         shell: cmd
             .shell
             .unwrap_or_else(|| env::var("SHELL").expect("No SHELL variable defined")),
+        no_shell: cmd.no_shell,
+        no_sftp: cmd.no_sftp,
     };
 
     log::info!("Listening on 0.0.0.0:2222");

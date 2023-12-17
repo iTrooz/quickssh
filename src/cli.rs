@@ -15,4 +15,10 @@ pub struct Command {
     // Default shell that connected users will have. Default to the shell used to start the quickssh server process
     #[arg(long)]
     pub shell: Option<String>,
+    // Disable shell
+    #[arg(long)]
+    pub no_shell: bool,
+    // Disable SFTP submodule
+    #[arg(long)]
+    pub no_sftp: bool,
 }

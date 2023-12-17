@@ -114,6 +114,10 @@ impl server::Handler for Server {
         channel_id: ChannelId,
         mut session: Session,
     ) -> Result<(Self, Session), Self::Error> {
+        if self.options.no_shell {
+            anyhow::bail!("Shell access disabled");
+        }
+
         log::info!("shell_request channel_id = {channel_id}");
 
         // create pty
@@ -277,6 +281,10 @@ impl server::Handler for Server {
         use super::sftp_events::SftpSession;
 
         if name == "sftp" {
+            if self.options.no_sftp {
+                anyhow::bail!("SFTP access disabled");
+            }
+
             let channel = {
                 let mut clients = self.clients.lock().await;
                 clients.remove(&(self.id, channel_id)).unwrap()

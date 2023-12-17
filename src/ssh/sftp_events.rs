@@ -1,8 +1,10 @@
 /// inspired from https://github.com/AspectUnk/russh-sftp/blob/master/examples/server.rs
 use async_trait::async_trait;
 use log::info;
-use russh_sftp::protocol::{File, FileAttributes, Handle, Name, Status, StatusCode, Version};
-use std::collections::HashMap;
+use russh_sftp::protocol::{
+    Attrs, File, FileAttributes, Handle, Name, Status, StatusCode, Version,
+};
+use std::{collections::HashMap, os::unix::fs::MetadataExt};
 
 enum ReadDirRequest {
     Todo(String),
@@ -29,6 +31,25 @@ impl russh_sftp::server::Handler for SftpSession {
 
     fn unimplemented(&self) -> Self::Error {
         StatusCode::OpUnsupported
+    }
+
+    async fn stat(&mut self, id: u32, path: String) -> Result<Attrs, Self::Error> {
+        let md = std::fs::metadata(path).unwrap();
+
+        Ok(Attrs {
+            id,
+            attrs: FileAttributes {
+                // TODO finish
+                size: Some(md.size()),
+                uid: Some(md.uid()),
+                user: None,
+                gid: Some(md.gid()),
+                group: None,
+                permissions: None,
+                atime: Some(md.atime().try_into().unwrap()),
+                mtime: Some(md.mtime().try_into().unwrap()),
+            },
+        })
     }
 
     async fn init(

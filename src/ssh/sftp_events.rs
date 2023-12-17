@@ -36,15 +36,25 @@ impl russh_sftp::server::Handler for SftpSession {
     async fn stat(&mut self, id: u32, path: String) -> Result<Attrs, Self::Error> {
         let md = std::fs::metadata(path).unwrap();
 
+        let user = users::get_user_by_uid(md.uid())
+            .unwrap()
+            .name()
+            .to_string_lossy()
+            .to_string();
+        let group = users::get_group_by_gid(md.gid())
+            .unwrap()
+            .name()
+            .to_string_lossy()
+            .to_string();
         Ok(Attrs {
             id,
             attrs: FileAttributes {
                 // TODO finish
                 size: Some(md.size()),
                 uid: Some(md.uid()),
-                user: None,
+                user: Some(user),
                 gid: Some(md.gid()),
-                group: None,
+                group: Some(group),
                 permissions: None,
                 atime: Some(md.atime().try_into().unwrap()),
                 mtime: Some(md.mtime().try_into().unwrap()),

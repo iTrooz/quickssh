@@ -52,8 +52,9 @@ impl russh_sftp::server::Handler for SftpSession {
     }
 
     async fn stat(&mut self, id: u32, path: String) -> Result<Attrs, Self::Error> {
-        let md = std::fs::metadata(path).unwrap();
+        info!("stat({}, {})", id, path);
 
+        let md = std::fs::metadata(path).unwrap();
         Ok(Attrs {
             id,
             attrs: metadata_to_file_attributes(&md),
@@ -62,6 +63,8 @@ impl russh_sftp::server::Handler for SftpSession {
 
     // does not follow if path is symlink
     async fn lstat(&mut self, id: u32, path: String) -> Result<Attrs, Self::Error> {
+        info!("lstat({}, {})", id, path);
+
         let md = std::fs::symlink_metadata(path).unwrap();
         Ok(Attrs {
             id,
@@ -85,6 +88,7 @@ impl russh_sftp::server::Handler for SftpSession {
     }
 
     async fn close(&mut self, id: u32, _handle: String) -> Result<Status, Self::Error> {
+        info!("close({}, {})", id, _handle);
         Ok(Status {
             id,
             status_code: StatusCode::Ok,
@@ -94,7 +98,7 @@ impl russh_sftp::server::Handler for SftpSession {
     }
 
     async fn opendir(&mut self, id: u32, path: String) -> Result<Handle, Self::Error> {
-        info!("opendir: {}", path);
+        info!("opendir({}, {})", id, path);
         let handle = self.new_readdir_handle();
         self.readdir_requests
             .insert(handle.clone(), ReadDirRequest::Todo(path.clone()));
@@ -102,7 +106,7 @@ impl russh_sftp::server::Handler for SftpSession {
     }
 
     async fn readdir(&mut self, id: u32, handle: String) -> Result<Name, Self::Error> {
-        info!("readdir handle: {}, id: {}", handle, id);
+        info!("readdir({}, {})", id, handle);
 
         let request = self.readdir_requests.get_mut(&handle);
         match request {
@@ -145,7 +149,7 @@ impl russh_sftp::server::Handler for SftpSession {
     }
 
     async fn realpath(&mut self, id: u32, path: String) -> Result<Name, Self::Error> {
-        info!("realpath: {}", path);
+        info!("realpath({}, {})", id, path);
         Ok(Name {
             id,
             files: vec![File {

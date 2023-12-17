@@ -4,7 +4,7 @@ use log::info;
 use russh_sftp::protocol::{
     Attrs, File, FileAttributes, Handle, Name, Status, StatusCode, Version,
 };
-use std::{collections::HashMap, os::unix::fs::MetadataExt};
+use std::{collections::HashMap, fs::Metadata, os::unix::fs::MetadataExt};
 
 enum ReadDirRequest {
     Todo(String),
@@ -25,6 +25,24 @@ pub struct SftpSession {
     readdir_counter: u32,
 }
 
+fn metadata_to_file_attributes(md: &Metadata) -> FileAttributes {
+    let user = users::get_user_by_uid(md.uid())
+        .unwrap()
+        .name()
+        .to_string_lossy()
+        .to_string();
+    let group = users::get_group_by_gid(md.gid())
+        .unwrap()
+        .name()
+        .to_string_lossy()
+        .to_string();
+    let mut attrs = FileAttributes::from(md);
+    attrs.user = Some(user);
+    attrs.group = Some(group);
+
+    attrs
+}
+
 #[async_trait]
 impl russh_sftp::server::Handler for SftpSession {
     type Error = StatusCode;
@@ -36,21 +54,19 @@ impl russh_sftp::server::Handler for SftpSession {
     async fn stat(&mut self, id: u32, path: String) -> Result<Attrs, Self::Error> {
         let md = std::fs::metadata(path).unwrap();
 
-        let user = users::get_user_by_uid(md.uid())
-            .unwrap()
-            .name()
-            .to_string_lossy()
-            .to_string();
-        let group = users::get_group_by_gid(md.gid())
-            .unwrap()
-            .name()
-            .to_string_lossy()
-            .to_string();
-        let mut attrs = FileAttributes::from(&md);
-        attrs.user = Some(user);
-        attrs.group = Some(group);
+        Ok(Attrs {
+            id,
+            attrs: metadata_to_file_attributes(&md),
+        })
+    }
 
-        Ok(Attrs { id, attrs })
+    // does not follow if path is symlink
+    async fn lstat(&mut self, id: u32, path: String) -> Result<Attrs, Self::Error> {
+        let md = std::fs::symlink_metadata(path).unwrap();
+        Ok(Attrs {
+            id,
+            attrs: metadata_to_file_attributes(&md),
+        })
     }
 
     async fn init(

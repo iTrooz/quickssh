@@ -1,5 +1,4 @@
 /// inspired from https://github.com/brandonros/rustbear/blob/master/src/main.rs
-
 use async_trait::async_trait;
 use log::info;
 use russh::server::{Auth, Msg, Session};

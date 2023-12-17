@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use log::info;
 use russh::server::{Auth, Msg, Session};
 use russh::*;
 use russh_keys::*;
@@ -262,6 +263,32 @@ impl server::Handler for Server {
                 .map_err(anyhow::Error::new)?;
         }
         drop(channel_pty_writers);
+        Ok((self, session))
+    }
+
+    async fn subsystem_request(
+        mut self,
+        channel_id: ChannelId,
+        name: &str,
+        mut session: Session,
+    ) -> Result<(Self, Session), Self::Error> {
+        info!("subsystem: {}", name);
+
+        use super::sftp_events::SftpSession;
+
+        if name == "sftp" {
+            let channel = {
+                let mut clients = self.clients.lock().await;
+                clients.remove(&(self.id, channel_id)).unwrap()
+            };
+
+            let sftp = SftpSession::default();
+            session.channel_success(channel_id);
+            russh_sftp::server::run(channel.into_stream(), sftp).await;
+        } else {
+            session.channel_failure(channel_id);
+        }
+
         Ok((self, session))
     }
 }

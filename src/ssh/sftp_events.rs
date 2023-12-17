@@ -46,20 +46,11 @@ impl russh_sftp::server::Handler for SftpSession {
             .name()
             .to_string_lossy()
             .to_string();
-        Ok(Attrs {
-            id,
-            attrs: FileAttributes {
-                // TODO finish
-                size: Some(md.size()),
-                uid: Some(md.uid()),
-                user: Some(user),
-                gid: Some(md.gid()),
-                group: Some(group),
-                permissions: None,
-                atime: Some(md.atime().try_into().unwrap()),
-                mtime: Some(md.mtime().try_into().unwrap()),
-            },
-        })
+        let mut attrs = FileAttributes::from(&md);
+        attrs.user = Some(user);
+        attrs.group = Some(group);
+
+        Ok(Attrs { id, attrs })
     }
 
     async fn init(

@@ -12,4 +12,7 @@ pub struct Command {
     // public keys that can be used to connect
     #[arg(long)]
     pub pubkey: Vec<String>,
+    // Default shell that connected users will have. Default to the shell used to start the quickssh server process
+    #[arg(long)]
+    pub shell: Option<String>,
 }

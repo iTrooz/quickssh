@@ -19,6 +19,7 @@ pub struct ServerOptions {
     pub user: String,
     pub password: Option<String>,
     pub pubkeys: Vec<key::PublicKey>,
+    pub shell: String,
 }
 
 pub async fn start_ssh_server(options: ServerOptions, keypair: KeyPair) -> anyhow::Result<()> {

@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::{env, fs::File};
 
 use log::warn;
 use russh_keys::key::{KeyPair, PublicKey};
@@ -83,6 +83,9 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
         user: cmd.user.unwrap_or(crate::utils::get_username()?),
         password: cmd.password,
         pubkeys,
+        shell: cmd
+            .shell
+            .unwrap_or_else(|| env::var("SHELL").expect("No SHELL variable defined")),
     };
 
     log::info!("Listening on 0.0.0.0:2222");

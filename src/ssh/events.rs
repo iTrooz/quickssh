@@ -93,8 +93,8 @@ impl server::Handler for Server {
             }
         });
 
-        // Spawn a new /bin/bash process in pty
-        let mut child = pty_process::Command::new("/bin/bash")
+        // Spawn a new shell process in pty
+        let mut child = pty_process::Command::new(&self.options.shell)
             .arg("-c")
             .arg(command)
             .spawn(&pts)
@@ -151,9 +151,8 @@ impl server::Handler for Server {
             }
         });
 
-        // Spawn a new /bin/bash process in pty
-        let program = "/bin/bash"; // TODO: get from user's shell?
-        let mut child = pty_process::Command::new(program)
+        // Spawn a new shell process in pty
+        let mut child = pty_process::Command::new(&self.options.shell)
             .spawn(&pts)
             .map_err(anyhow::Error::new)?;
 

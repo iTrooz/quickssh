@@ -1,4 +1,4 @@
-use clap::{command, Parser, ArgAction};
+use clap::{command, ArgAction, Parser};
 
 #[derive(Parser, Debug)]
 #[command(name = env!("CARGO_PKG_NAME"), author, about, version, long_about = None)]

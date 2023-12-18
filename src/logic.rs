@@ -54,16 +54,25 @@ fn read_authorized_keys() -> anyhow::Result<Vec<PublicKey>> {
     }
 }
 
-fn init_logger(verbose: bool) {
+fn init_logger(verbose: u8) {
     let mut tmp = env_logger::builder();
     let mut log_builder = &mut tmp;
-    if verbose {
-        log_builder = log_builder.filter_level(log::LevelFilter::Debug);
-        log::debug!("Debug logging enabled");
-    } else {
-        log_builder = log_builder.filter_level(log::LevelFilter::Info);
-    }
+
+    match verbose {
+        0 => log_builder = log_builder.filter_level(log::LevelFilter::Info),
+        1 => {
+            log_builder = log_builder.filter_level(log::LevelFilter::Info);
+            log_builder = log_builder.filter_module("quickssh", log::LevelFilter::Debug);
+        }
+        2.. => log_builder = log_builder.filter_level(log::LevelFilter::Debug),
+    };
     log_builder.init();
+
+    match verbose {
+        0 => {}
+        1 => log::info!("Debug logging enabled for quickssh. Use -vv to also debug libraries"),
+        2.. => log::debug!("Debug logging enabled for all code"),
+    };
 }
 
 pub async fn run(cmd: Command) -> anyhow::Result<()> {

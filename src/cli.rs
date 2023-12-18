@@ -1,10 +1,10 @@
-use clap::{command, Parser};
+use clap::{command, Parser, ArgAction};
 
 #[derive(Parser, Debug)]
 #[command(name = env!("CARGO_PKG_NAME"), author, about, version, long_about = None)]
 pub struct Command {
-    #[arg(short, long)]
-    pub verbose: bool,
+    #[arg(short, long, action = ArgAction::Count)]
+    pub verbose: u8,
     #[arg(short, long)]
     pub user: Option<String>,
     #[arg(short, long)]

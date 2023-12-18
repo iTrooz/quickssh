@@ -11,7 +11,9 @@ use super::Server;
 impl server::Server for Server {
     type Handler = Self;
     fn new_client(&mut self, addr: Option<std::net::SocketAddr>) -> Self {
-        log::info!("new client from {}", addr.unwrap());
+        if let Some(addr) = addr {
+            log::info!("new client from {}", addr);
+        }
         let s = self.clone();
         self.id += 1;
         s

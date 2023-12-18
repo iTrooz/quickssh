@@ -28,7 +28,7 @@ impl server::Handler for Server {
         session: Session,
     ) -> Result<(Self, bool, Session), Self::Error> {
         {
-            log::info!("channel_open_session");
+            log::debug!("channel_open_session");
             let mut clients = self.clients.lock().await;
             clients.insert((self.id, channel.id()), channel);
         }
@@ -42,7 +42,7 @@ impl server::Handler for Server {
         variable_value: &str,
         session: Session,
     ) -> Result<(Self, Session), Self::Error> {
-        log::info!("env_request: channel_id = {channel_id} variable_name = {variable_name} variable_value = {variable_value}");
+        log::debug!("env_request: channel_id = {channel_id} variable_name = {variable_name} variable_value = {variable_value}");
         // TODO
         Ok((self, session))
     }
@@ -82,7 +82,7 @@ impl server::Handler for Server {
             let mut buffer = vec![0; 1024];
             while let Ok(size) = pty_reader.read(&mut buffer).await {
                 if size == 0 {
-                    log::info!("pty_reader read 0");
+                    log::debug!("pty_reader read 0");
                     // TODO: kill pty + command?
                     let _ = session_handle.close(channel_id).await;
                     break;
@@ -118,7 +118,7 @@ impl server::Handler for Server {
             anyhow::bail!("Shell access disabled");
         }
 
-        log::info!("shell_request channel_id = {channel_id}");
+        log::debug!("shell_request channel_id = {channel_id}");
 
         // create pty
         let pty = pty_process::Pty::new().unwrap();
@@ -144,7 +144,7 @@ impl server::Handler for Server {
             let mut buffer = vec![0; 1024];
             while let Ok(size) = pty_reader.read(&mut buffer).await {
                 if size == 0 {
-                    log::info!("pty_reader read 0");
+                    log::debug!("pty_reader read 0");
                     // TODO: kill pty + command?
                     let _ = session_handle.close(channel_id).await;
                     break;
@@ -183,7 +183,7 @@ impl server::Handler for Server {
         _pix_height: u32,
         session: Session,
     ) -> Result<(Self, Session), Self::Error> {
-        log::info!("window_change_request channel_id = {channel_id:?} col_width = {col_width} row_height = {row_height}");
+        log::debug!("window_change_request channel_id = {channel_id:?} col_width = {col_width} row_height = {row_height}");
         let mut channel_pty_writers = self.channel_pty_writers.lock().await;
         if let Some(pty_writer) = channel_pty_writers.get_mut(&channel_id) {
             if let Err(e) =

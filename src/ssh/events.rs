@@ -201,7 +201,7 @@ impl server::Handler for Server {
     async fn auth_publickey(
         self,
         user: &str,
-        public_key: &key::PublicKey,
+        public_key: &russh_keys::key::PublicKey,
     ) -> Result<(Self, Auth), Self::Error> {
         log::info!(
             "auth_publickey: user: {user} public_key: {}",

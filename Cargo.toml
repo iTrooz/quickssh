@@ -13,8 +13,8 @@ env_logger = "0.10.1"
 futures = "0.3.29"
 log = "0.4.20"
 pty-process = { git = "https://github.com/mobusoperandi/pty-process.git", branch = "macos_draft_pr", features = ["async"] }
-russh = "0.40.1"
-russh-keys = "0.40.1"
+russh = { path = "lib/russh/russh" }
+russh-keys = { path = "lib/russh/russh-keys" }
 russh-sftp = { path = "lib/russh-sftp" }
 tokio = { version = "1.34.0", features = ["rt-multi-thread"] }
 users = "0.11.0"

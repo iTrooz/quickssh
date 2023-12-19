@@ -1,3 +1,6 @@
 [submodule "lib/russh-sftp"]
 	path = lib/russh-sftp
 	url = https://github.com/iTrooz/russh-sftp
+[submodule "lib/russh"]
+	path = lib/russh
+	url = gitperso:iTrooz/russh

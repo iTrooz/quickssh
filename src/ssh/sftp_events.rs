@@ -131,11 +131,10 @@ impl russh_sftp::server::Handler for SftpSession {
                 let mut files: Vec<File> = vec![];
                 for path in paths {
                     let path = path.unwrap();
-                    files.push(File {
-                        longname: "".to_string(),
-                        filename: path.file_name().into_string().unwrap(),
-                        attrs: FileAttributes::default(),
-                    });
+                    files.push(File::new(
+                        path.file_name().into_string().unwrap(),
+                        FileAttributes::default(),
+                    ));
                 }
 
                 *request.unwrap() = ReadDirRequest::Done;
@@ -153,14 +152,13 @@ impl russh_sftp::server::Handler for SftpSession {
         info!("realpath({}, {})", id, path);
         Ok(Name {
             id,
-            files: vec![File {
-                longname: "".to_string(),
-                filename: std::fs::canonicalize(path) // TODO replace this function, it doesn't have the behaviour the RFC wants
+            files: vec![File::new(
+                std::fs::canonicalize(path) // TODO replace this function, it doesn't have the behaviour the RFC wants
                     .unwrap()
                     .to_string_lossy()
                     .to_string(),
-                attrs: FileAttributes::default(),
-            }],
+                FileAttributes::default(),
+            )],
         })
     }
 }

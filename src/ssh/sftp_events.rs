@@ -2,9 +2,13 @@
 use async_trait::async_trait;
 use log::info;
 use russh_sftp::protocol::{
-    Attrs, File, FileAttributes, Handle, Name, Status, StatusCode, Version,
+    Attrs, Data, File, FileAttributes, Handle, Name, OpenFlags, Status, StatusCode, Version,
 };
-use std::{collections::HashMap, fs::Metadata, os::unix::fs::MetadataExt};
+use std::{
+    collections::HashMap,
+    fs::Metadata,
+    os::unix::fs::{FileExt, MetadataExt},
+};
 
 enum ReadDirRequest {
     Todo(String),
@@ -12,9 +16,9 @@ enum ReadDirRequest {
 }
 
 impl SftpSession {
-    fn new_readdir_handle(&mut self) -> String {
-        self.readdir_counter += 1;
-        self.readdir_counter.to_string()
+    fn new_handle(&mut self) -> String {
+        self.handle_counter += 1;
+        self.handle_counter.to_string()
     }
 }
 
@@ -22,7 +26,8 @@ impl SftpSession {
 pub struct SftpSession {
     version: Option<u32>,
     readdir_requests: HashMap<String, ReadDirRequest>,
-    readdir_counter: u32,
+    file_handles: HashMap<String, std::fs::File>,
+    handle_counter: u32,
 }
 
 fn metadata_to_file_attributes(md: &Metadata) -> FileAttributes {
@@ -87,8 +92,8 @@ impl russh_sftp::server::Handler for SftpSession {
         Ok(Version::new())
     }
 
-    async fn close(&mut self, id: u32, _handle: String) -> Result<Status, Self::Error> {
-        info!("close({}, {})", id, _handle);
+    async fn close(&mut self, id: u32, handle: String) -> Result<Status, Self::Error> {
+        info!("close({}, {})", id, handle);
         Ok(Status {
             id,
             status_code: StatusCode::Ok,
@@ -99,7 +104,7 @@ impl russh_sftp::server::Handler for SftpSession {
 
     async fn opendir(&mut self, id: u32, path: String) -> Result<Handle, Self::Error> {
         info!("opendir({}, {})", id, path);
-        let handle = self.new_readdir_handle();
+        let handle = self.new_handle();
         self.readdir_requests
             .insert(handle.clone(), ReadDirRequest::Todo(path.clone()));
         Ok(Handle { id, handle })
@@ -160,5 +165,44 @@ impl russh_sftp::server::Handler for SftpSession {
                 FileAttributes::default(),
             )],
         })
+    }
+
+    async fn open(
+        &mut self,
+        id: u32,
+        filename: String,
+        pflags: OpenFlags,
+        attrs: FileAttributes,
+    ) -> Result<Handle, Self::Error> {
+        info!("open({}, {}, {:?}, {:?})", id, filename, pflags, attrs);
+        let handle = self.new_handle();
+        self.file_handles
+            .insert(handle.clone(), std::fs::File::open(filename).unwrap());
+        Ok(Handle { id, handle })
+    }
+
+    async fn read(
+        &mut self,
+        id: u32,
+        handle: String,
+        offset: u64,
+        len: u32,
+    ) -> Result<Data, Self::Error> {
+        info!("read({}, {}, {}, {})", id, handle, offset, len);
+        if let Some(file) = self.file_handles.get(&handle) {
+            let len = len.try_into().unwrap();
+            let mut data = vec![0u8; len];
+            let read_bytes = file.read_at(&mut data, offset).unwrap();
+            data.resize(read_bytes, 0);
+
+            if read_bytes == 0 {
+                Err(Self::Error::Eof)
+            } else {
+                Ok(Data { id, data })
+            }
+        } else {
+            // TODO use SSH_FX_INVALID_HANDLE
+            Err(Self::Error::Failure)
+        }
     }
 }

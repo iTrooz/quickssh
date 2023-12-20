@@ -265,4 +265,19 @@ impl russh_sftp::server::Handler for SftpSession {
             language_tag: "en-US".to_string(),
         })
     }
+
+    async fn rename(
+        &mut self,
+        id: u32,
+        oldpath: String,
+        newpath: String,
+    ) -> Result<Status, Self::Error> {
+        std::fs::rename(oldpath, newpath).unwrap();
+        Ok(Status {
+            id,
+            status_code: StatusCode::Ok,
+            error_message: "Ok".to_string(),
+            language_tag: "en-US".to_string(),
+        })
+    }
 }

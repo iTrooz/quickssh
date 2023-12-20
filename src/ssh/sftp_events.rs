@@ -255,4 +255,14 @@ impl russh_sftp::server::Handler for SftpSession {
             Err(Self::Error::Failure)
         }
     }
+
+    async fn remove(&mut self, id: u32, filename: String) -> Result<Status, Self::Error> {
+        std::fs::remove_file(filename).unwrap();
+        Ok(Status {
+            id,
+            status_code: StatusCode::Ok,
+            error_message: "Ok".to_string(),
+            language_tag: "en-US".to_string(),
+        })
+    }
 }

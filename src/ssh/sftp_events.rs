@@ -7,6 +7,7 @@ use russh_sftp::protocol::{
 use std::{
     collections::HashMap,
     fs::Metadata,
+    io::ErrorKind,
     os::unix::fs::{FileExt, MetadataExt},
 };
 
@@ -59,11 +60,17 @@ impl russh_sftp::server::Handler for SftpSession {
     async fn stat(&mut self, id: u32, path: String) -> Result<Attrs, Self::Error> {
         info!("stat({}, {})", id, path);
 
-        let md = std::fs::metadata(path).unwrap();
-        Ok(Attrs {
-            id,
-            attrs: metadata_to_file_attributes(&md),
-        })
+        match std::fs::metadata(path) {
+            Ok(md) => Ok(Attrs {
+                id,
+                attrs: metadata_to_file_attributes(&md),
+            }),
+            Err(err) if err.kind() == ErrorKind::NotFound => Err(StatusCode::NoSuchFile),
+            Err(err) => {
+                log::error!("Error occured in stat(): {err}");
+                Err(StatusCode::Failure)
+            }
+        }
     }
 
     // does not follow if path is symlink

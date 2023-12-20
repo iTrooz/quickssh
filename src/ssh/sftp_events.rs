@@ -6,7 +6,7 @@ use russh_sftp::protocol::{
 };
 use std::{
     collections::HashMap,
-    fs::Metadata,
+    fs::{Metadata, OpenOptions},
     io::ErrorKind,
     os::unix::fs::{FileExt, MetadataExt},
 };
@@ -183,8 +183,11 @@ impl russh_sftp::server::Handler for SftpSession {
     ) -> Result<Handle, Self::Error> {
         info!("open({}, {}, {:?}, {:?})", id, filename, pflags, attrs);
         let handle = self.new_handle();
-        self.file_handles
-            .insert(handle.clone(), std::fs::File::open(filename).unwrap());
+
+        self.file_handles.insert(
+            handle.clone(),
+            OpenOptions::from(pflags).open(filename).unwrap(),
+        );
         Ok(Handle { id, handle })
     }
 
@@ -207,6 +210,35 @@ impl russh_sftp::server::Handler for SftpSession {
             } else {
                 Ok(Data { id, data })
             }
+        } else {
+            // TODO use SSH_FX_INVALID_HANDLE
+            Err(Self::Error::Failure)
+        }
+    }
+
+    async fn write(
+        &mut self,
+        id: u32,
+        handle: String,
+        offset: u64,
+        data: Vec<u8>,
+    ) -> Result<Status, Self::Error> {
+        info!(
+            "write({}, {}, {}, [data of length {}])",
+            id,
+            handle,
+            offset,
+            data.len()
+        );
+        if let Some(file) = self.file_handles.get(&handle) {
+            file.write_at(&data, offset).unwrap();
+
+            Ok(Status {
+                id,
+                status_code: StatusCode::Ok,
+                error_message: "Ok".to_string(),
+                language_tag: "en-US".to_string(),
+            })
         } else {
             // TODO use SSH_FX_INVALID_HANDLE
             Err(Self::Error::Failure)

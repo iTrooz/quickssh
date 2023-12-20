@@ -168,16 +168,20 @@ impl russh_sftp::server::Handler for SftpSession {
 
     async fn realpath(&mut self, id: u32, path: String) -> Result<Name, Self::Error> {
         info!("realpath({}, {})", id, path);
-        Ok(Name {
-            id,
-            files: vec![File::new(
-                std::fs::canonicalize(path) // TODO replace this function, it doesn't have the behaviour the RFC wants
-                    .unwrap()
-                    .to_string_lossy()
-                    .to_string(),
-                FileAttributes::default(),
-            )],
-        })
+        // TODO replace std::fs::canonicalize(), it doesn't have the behaviour the RFC wants
+        match std::fs::canonicalize(path) {
+            Ok(path) => Ok(Name {
+                id,
+                files: vec![File::new(
+                    path.to_string_lossy().to_string(),
+                    FileAttributes::default(),
+                )],
+            }),
+            Err(err) => {
+                log::error!("error occured in realpath(): {err}");
+                Err(StatusCode::Failure)
+            }
+        }
     }
 
     async fn open(

@@ -151,7 +151,7 @@ impl russh_sftp::server::Handler for SftpSession {
                     let path = path.unwrap();
                     files.push(File::new(
                         path.file_name().into_string().unwrap(),
-                        FileAttributes::default(),
+                        FileAttributes::from(&path.metadata().unwrap()),
                     ));
                 }
 

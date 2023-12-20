@@ -77,11 +77,17 @@ impl russh_sftp::server::Handler for SftpSession {
     async fn lstat(&mut self, id: u32, path: String) -> Result<Attrs, Self::Error> {
         info!("lstat({}, {})", id, path);
 
-        let md = std::fs::symlink_metadata(path).unwrap();
-        Ok(Attrs {
-            id,
-            attrs: metadata_to_file_attributes(&md),
-        })
+        match std::fs::symlink_metadata(path) {
+            Ok(md) => Ok(Attrs {
+                id,
+                attrs: metadata_to_file_attributes(&md),
+            }),
+            Err(err) if err.kind() == ErrorKind::NotFound => Err(StatusCode::NoSuchFile),
+            Err(err) => {
+                log::error!("Error occured in stat(): {err}");
+                Err(StatusCode::Failure)
+            }
+        }
     }
 
     async fn init(

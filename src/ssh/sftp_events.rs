@@ -54,6 +54,7 @@ impl russh_sftp::server::Handler for SftpSession {
     type Error = StatusCode;
 
     fn unimplemented(&self) -> Self::Error {
+        log::warn!("Client asked for an unimplemented operation");
         StatusCode::OpUnsupported
     }
 

@@ -22,6 +22,7 @@ pub struct ServerOptions {
     pub shell: String,
     pub no_shell: bool,
     pub no_sftp: bool,
+    pub port: u16,
 }
 
 pub async fn start_ssh_server(options: ServerOptions, keypair: KeyPair) -> anyhow::Result<()> {
@@ -44,6 +45,8 @@ pub async fn start_ssh_server(options: ServerOptions, keypair: KeyPair) -> anyho
         ..Default::default()
     };
 
+    let port = options.port;
+
     let server = Server {
         clients: Arc::new(Mutex::new(HashMap::new())),
         channel_pty_writers: Arc::new(Mutex::new(HashMap::new())),
@@ -51,6 +54,6 @@ pub async fn start_ssh_server(options: ServerOptions, keypair: KeyPair) -> anyho
         options,
     };
 
-    russh::server::run(Arc::new(config), ":::2222", server).await?;
+    russh::server::run(Arc::new(config), format!(":::{port}"), server).await?;
     Ok(())
 }

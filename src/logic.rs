@@ -97,9 +97,10 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
             .unwrap_or_else(|| env::var("SHELL").expect("No SHELL variable defined")),
         no_shell: cmd.no_shell,
         no_sftp: cmd.no_sftp,
+        port: cmd.port,
     };
 
-    log::info!("Listening on 0.0.0.0:2222");
+    log::info!("Listening on 0.0.0.0:{}", options.port);
     log::info!("User is {}", options.user);
     log::info!(
         "Password is {}",

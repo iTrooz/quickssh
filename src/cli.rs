@@ -21,4 +21,6 @@ pub struct Command {
     // Disable SFTP submodule
     #[arg(long)]
     pub no_sftp: bool,
+    #[arg(long, default_value_t = 2222)]
+    pub port: u16,
 }

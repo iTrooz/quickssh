@@ -193,9 +193,14 @@ impl russh_sftp::server::Handler for SftpSession {
         }
     }
 
-    async fn realpath(&mut self, id: u32, path: String) -> Result<Name, Self::Error> {
+    async fn realpath(&mut self, id: u32, mut path: String) -> Result<Name, Self::Error> {
         info!("realpath({}, {})", id, path);
         // TODO replace std::fs::canonicalize(), it doesn't have the behaviour the RFC wants
+
+        if path.is_empty() {
+            path = ".".to_string();
+        }
+        
         match std::fs::canonicalize(path) {
             Ok(path) => Ok(Name {
                 id,

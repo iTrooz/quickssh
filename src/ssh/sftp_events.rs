@@ -344,4 +344,21 @@ impl russh_sftp::server::Handler for SftpSession {
             Err(StatusCode::NoSuchFile)
         }
     }
+
+    async fn mkdir(
+        &mut self,
+        id: u32,
+        path: String,
+        attrs: FileAttributes,
+    ) -> Result<Status, Self::Error> {
+        info!("mkdir({}, {}, {:?})", id, path, attrs);
+        tr(std::fs::create_dir(path))?;
+        Ok(status_ok(id))
+    }
+
+    async fn rmdir(&mut self, id: u32, path: String) -> Result<Status, Self::Error> {
+        info!("rmdir({}, {})", id, path);
+        tr(std::fs::remove_dir(path))?;
+        Ok(status_ok(id))
+    }
 }

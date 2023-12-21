@@ -55,6 +55,15 @@ fn tr<T>(res: Result<T, impl std::error::Error>) -> Result<T, StatusCode> {
     }
 }
 
+fn status_ok(id: u32) -> Status {
+    Status {
+        id,
+        status_code: StatusCode::Ok,
+        error_message: "Ok".to_string(),
+        language_tag: "en-US".to_string(),
+    }
+}
+
 #[async_trait]
 impl russh_sftp::server::Handler for SftpSession {
     type Error = StatusCode;
@@ -131,12 +140,7 @@ impl russh_sftp::server::Handler for SftpSession {
     ) -> Result<Status, Self::Error> {
         log::info!("setstat({}, {}, {:?})", id, path, attrs);
         tr_ah(apply_file_attributes(path, &attrs))?;
-        Ok(Status {
-            id,
-            status_code: StatusCode::Ok,
-            error_message: "Ok".to_string(),
-            language_tag: "en-US".to_string(),
-        })
+        Ok(status_ok(id))
     }
 
     async fn init(
@@ -156,12 +160,7 @@ impl russh_sftp::server::Handler for SftpSession {
 
     async fn close(&mut self, id: u32, handle: String) -> Result<Status, Self::Error> {
         info!("close({}, {})", id, handle);
-        Ok(Status {
-            id,
-            status_code: StatusCode::Ok,
-            error_message: "Ok".to_string(),
-            language_tag: "en-US".to_string(),
-        })
+        Ok(status_ok(id))
     }
 
     async fn opendir(&mut self, id: u32, path: String) -> Result<Handle, Self::Error> {
@@ -307,12 +306,7 @@ impl russh_sftp::server::Handler for SftpSession {
         if let Some(file) = self.file_handles.get(&handle) {
             tr(file.write_at(&data, offset))?;
 
-            Ok(Status {
-                id,
-                status_code: StatusCode::Ok,
-                error_message: "Ok".to_string(),
-                language_tag: "en-US".to_string(),
-            })
+            Ok(status_ok(id))
         } else {
             // TODO use SSH_FX_INVALID_HANDLE
             Err(Self::Error::Failure)
@@ -321,12 +315,7 @@ impl russh_sftp::server::Handler for SftpSession {
 
     async fn remove(&mut self, id: u32, filename: String) -> Result<Status, Self::Error> {
         tr(std::fs::remove_file(filename))?;
-        Ok(Status {
-            id,
-            status_code: StatusCode::Ok,
-            error_message: "Ok".to_string(),
-            language_tag: "en-US".to_string(),
-        })
+        Ok(status_ok(id))
     }
 
     async fn rename(
@@ -336,12 +325,7 @@ impl russh_sftp::server::Handler for SftpSession {
         newpath: String,
     ) -> Result<Status, Self::Error> {
         tr(std::fs::rename(oldpath, newpath))?;
-        Ok(Status {
-            id,
-            status_code: StatusCode::Ok,
-            error_message: "Ok".to_string(),
-            language_tag: "en-US".to_string(),
-        })
+        Ok(status_ok(id))
     }
 
     async fn readlink(&mut self, id: u32, path: String) -> Result<Name, Self::Error> {

@@ -7,7 +7,7 @@ pub struct Command {
     pub verbose: u8,
     #[arg(short, long)]
     pub user: Option<String>,
-    #[arg(short, long)]
+    #[arg(long, alias = "pass")]
     pub password: Option<String>,
     // public keys that can be used to connect
     #[arg(long)]
@@ -21,6 +21,6 @@ pub struct Command {
     // Disable SFTP submodule
     #[arg(long)]
     pub no_sftp: bool,
-    #[arg(long, default_value_t = 2222)]
+    #[arg(short, long, default_value_t = 2222)]
     pub port: u16,
 }

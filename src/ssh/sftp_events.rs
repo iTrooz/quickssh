@@ -32,6 +32,19 @@ pub struct SftpSession {
     handle_counter: u32,
 }
 
+/// "tr" means "translate"
+/// This functions translates any kind of error into a StatusCode
+/// If someone knows how to do this using the ? operator, please open a PR
+fn tr<T>(res: Result<T, impl std::error::Error>) -> Result<T, StatusCode> {
+    match res {
+        Ok(value) => Ok(value),
+        Err(err) => {
+            log::error!("An error occured: {err}");
+            Err(StatusCode::Failure)
+        }
+    }
+}
+
 #[async_trait]
 impl russh_sftp::server::Handler for SftpSession {
     type Error = StatusCode;
@@ -175,10 +188,10 @@ impl russh_sftp::server::Handler for SftpSession {
             Some(ReadDirRequest::Todo(paths)) => {
                 let mut files: Vec<File> = vec![];
                 for path in paths {
-                    let path = path.unwrap();
+                    let path = tr(path)?;
                     files.push(File::new(
                         path.file_name().into_string().unwrap(),
-                        FileAttributes::from(&path.metadata().unwrap()),
+                        FileAttributes::from(&tr(path.metadata())?),
                     ));
                 }
 
@@ -200,7 +213,7 @@ impl russh_sftp::server::Handler for SftpSession {
         if path.is_empty() {
             path = ".".to_string();
         }
-        
+
         match std::fs::canonicalize(path) {
             Ok(path) => Ok(Name {
                 id,
@@ -228,7 +241,7 @@ impl russh_sftp::server::Handler for SftpSession {
 
         self.file_handles.insert(
             handle.clone(),
-            OpenOptions::from(pflags).open(filename).unwrap(),
+            tr(OpenOptions::from(pflags).open(filename))?,
         );
         Ok(Handle { id, handle })
     }
@@ -242,9 +255,9 @@ impl russh_sftp::server::Handler for SftpSession {
     ) -> Result<Data, Self::Error> {
         info!("read({}, {}, {}, {})", id, handle, offset, len);
         if let Some(file) = self.file_handles.get(&handle) {
-            let len = len.try_into().unwrap();
+            let len = tr(len.try_into())?;
             let mut data = vec![0u8; len];
-            let read_bytes = file.read_at(&mut data, offset).unwrap();
+            let read_bytes = tr(file.read_at(&mut data, offset))?;
             data.resize(read_bytes, 0);
 
             if read_bytes == 0 {
@@ -273,7 +286,7 @@ impl russh_sftp::server::Handler for SftpSession {
             data.len()
         );
         if let Some(file) = self.file_handles.get(&handle) {
-            file.write_at(&data, offset).unwrap();
+            tr(file.write_at(&data, offset))?;
 
             Ok(Status {
                 id,
@@ -288,7 +301,7 @@ impl russh_sftp::server::Handler for SftpSession {
     }
 
     async fn remove(&mut self, id: u32, filename: String) -> Result<Status, Self::Error> {
-        std::fs::remove_file(filename).unwrap();
+        tr(std::fs::remove_file(filename))?;
         Ok(Status {
             id,
             status_code: StatusCode::Ok,
@@ -303,7 +316,7 @@ impl russh_sftp::server::Handler for SftpSession {
         oldpath: String,
         newpath: String,
     ) -> Result<Status, Self::Error> {
-        std::fs::rename(oldpath, newpath).unwrap();
+        tr(std::fs::rename(oldpath, newpath))?;
         Ok(Status {
             id,
             status_code: StatusCode::Ok,
@@ -314,14 +327,14 @@ impl russh_sftp::server::Handler for SftpSession {
 
     async fn readlink(&mut self, id: u32, path: String) -> Result<Name, Self::Error> {
         info!("readlink({}, {})", id, path);
-        let real_path = std::fs::read_link(path).unwrap();
+        let real_path = tr(std::fs::read_link(path))?;
 
         if real_path.exists() {
             Ok(Name {
                 id,
                 files: vec![File::new(
                     real_path.to_string_lossy().to_string(),
-                    FileAttributes::from(&real_path.metadata().unwrap()),
+                    FileAttributes::from(&tr(real_path.metadata())?),
                 )],
             })
         } else {

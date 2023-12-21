@@ -190,10 +190,17 @@ impl russh_sftp::server::Handler for SftpSession {
                     let mut files: Vec<File> = vec![];
                     for path in paths {
                         let path = tr(path)?;
-                        files.push(File::new(
-                            path.file_name().into_string().unwrap(),
-                            FileAttributes::from(&tr(path.metadata())?),
-                        ));
+                        match path.file_name().into_string() {
+                            Ok(path_str) => {
+                                files.push(File::new(
+                                    path_str,
+                                    FileAttributes::from(&tr(path.metadata())?),
+                                ));
+                            }
+                            Err(_) => {
+                                log::error!("Failed to convert file path '{path:?}' to string");
+                            }
+                        }
                     }
 
                     *request = ReadDirRequest::Done;

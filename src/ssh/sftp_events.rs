@@ -54,7 +54,12 @@ impl russh_sftp::server::Handler for SftpSession {
     type Error = StatusCode;
 
     fn unimplemented(&self) -> Self::Error {
-        log::warn!("Client asked for an unimplemented operation");
+        let bt = std::backtrace::Backtrace::force_capture();
+        log::warn!(
+            "Client asked for an unimplemented operation. Stacktrace: {}",
+            bt
+        );
+
         StatusCode::OpUnsupported
     }
 

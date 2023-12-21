@@ -41,7 +41,12 @@ fn timeval_secs(secs: i64) -> libc::timeval {
 
 fn apply_file_attributes(path: String, attrs: &FileAttributes) {
     if let Some(size) = attrs.size {
-        std::fs::File::open(&path).unwrap().set_len(size).unwrap();
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&path)
+            .unwrap();
+        file.set_len(size).unwrap();
     }
 
     let md = std::fs::metadata(&path).unwrap();
@@ -152,6 +157,27 @@ impl russh_sftp::server::Handler for SftpSession {
                 log::error!("Error occured in stat(): {err}");
                 Err(StatusCode::Failure)
             }
+        }
+    }
+
+    async fn fstat(&mut self, id: u32, handle: String) -> Result<Attrs, Self::Error> {
+        log::info!("fstat({}, {})", id, handle);
+
+        if let Some(file) = self.file_handles.get(&handle) {
+            match file.metadata() {
+                Ok(md) => Ok(Attrs {
+                    id,
+                    attrs: metadata_to_file_attributes(&md),
+                }),
+                Err(err) if err.kind() == ErrorKind::NotFound => Err(StatusCode::NoSuchFile),
+                Err(err) => {
+                    log::error!("Error occured in fstat(): {err}");
+                    Err(StatusCode::Failure)
+                }
+            }
+        } else {
+            // TODO use SSH_FX_INVALID_HANDLE
+            Err(Self::Error::Failure)
         }
     }
 

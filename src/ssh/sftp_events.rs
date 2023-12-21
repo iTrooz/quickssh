@@ -284,7 +284,6 @@ impl russh_sftp::server::Handler for SftpSession {
     async fn readlink(&mut self, id: u32, path: String) -> Result<Name, Self::Error> {
         info!("readlink({}, {})", id, path);
         let real_path = std::fs::read_link(path).unwrap();
-        println!("{real_path:?}");
 
         if real_path.exists() {
             Ok(Name {

@@ -51,6 +51,6 @@ pub async fn start_ssh_server(options: ServerOptions, keypair: KeyPair) -> anyho
         options,
     };
 
-    russh::server::run(Arc::new(config), ("0.0.0.0", 2222), server).await?;
+    russh::server::run(Arc::new(config), ":::2222", server).await?;
     Ok(())
 }

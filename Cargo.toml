@@ -11,6 +11,7 @@ async-trait = "0.1.74"
 clap = { version = "4.4.11", features = ["derive"] }
 env_logger = "0.10.1"
 futures = "0.3.29"
+libc = "0.2.151"
 log = "0.4.20"
 pty-process = { git = "https://github.com/mobusoperandi/pty-process.git", branch = "macos_draft_pr", features = ["async"] }
 russh = { path = "lib/russh/russh" }

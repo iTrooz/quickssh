@@ -6,9 +6,10 @@ use russh_sftp::protocol::{
 };
 use std::{
     collections::HashMap,
+    ffi::CString,
     fs::{Metadata, OpenOptions, ReadDir},
     io::ErrorKind,
-    os::unix::fs::{FileExt, MetadataExt},
+    os::unix::fs::{FileExt, MetadataExt, PermissionsExt},
 };
 
 enum ReadDirRequest {
@@ -31,6 +32,64 @@ pub struct SftpSession {
     handle_counter: u32,
 }
 
+fn timeval_secs(secs: i64) -> libc::timeval {
+    libc::timeval {
+        tv_sec: secs,
+        tv_usec: 0,
+    }
+}
+
+fn apply_file_attributes(path: String, attrs: &FileAttributes) {
+    if let Some(size) = attrs.size {
+        std::fs::File::open(&path).unwrap().set_len(size).unwrap();
+    }
+
+    let md = std::fs::metadata(&path).unwrap();
+    let cpath = CString::new(path.as_bytes()).unwrap();
+
+    // modify owner/group
+    {
+        let mut uid_gid = (md.uid(), md.gid());
+
+        if let Some(uid) = attrs.uid {
+            uid_gid.0 = uid;
+        } else if let Some(ref user) = attrs.user {
+            uid_gid.0 = users::get_user_by_name(user).unwrap().uid();
+        }
+
+        if let Some(gid) = attrs.gid {
+            uid_gid.1 = gid;
+        } else if let Some(ref group) = attrs.group {
+            uid_gid.1 = users::get_group_by_name(group).unwrap().gid();
+        }
+
+        if uid_gid != (md.uid(), md.gid()) {
+            unsafe {
+                libc::chown(cpath.as_ptr(), uid_gid.0, uid_gid.1);
+            }
+        }
+    }
+
+    if let Some(perms) = attrs.permissions {
+        std::fs::set_permissions(path, PermissionsExt::from_mode(perms)).unwrap();
+    }
+
+    let mut times = (md.atime(), md.mtime());
+    unsafe {
+        if let Some(atime) = attrs.atime {
+            times.0 = atime.try_into().unwrap();
+        }
+        if let Some(mtime) = attrs.mtime {
+            times.1 = mtime.try_into().unwrap();
+        }
+        if times != (md.atime(), md.mtime()) {
+            libc::utimes(
+                cpath.as_ptr(),
+                [timeval_secs(times.0), timeval_secs(times.1)].as_ptr(),
+            );
+        }
+    }
+}
 fn metadata_to_file_attributes(md: &Metadata) -> FileAttributes {
     let user = users::get_user_by_uid(md.uid())
         .unwrap()
@@ -94,6 +153,22 @@ impl russh_sftp::server::Handler for SftpSession {
                 Err(StatusCode::Failure)
             }
         }
+    }
+
+    async fn setstat(
+        &mut self,
+        id: u32,
+        path: String,
+        attrs: FileAttributes,
+    ) -> Result<Status, Self::Error> {
+        log::info!("setstat({}, {}, {:?})", id, path, attrs);
+        apply_file_attributes(path, &attrs);
+        Ok(Status {
+            id,
+            status_code: StatusCode::Ok,
+            error_message: "Ok".to_string(),
+            language_tag: "en-US".to_string(),
+        })
     }
 
     async fn init(

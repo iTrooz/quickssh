@@ -16,7 +16,7 @@ fn init_server_key() -> anyhow::Result<KeyPair> {
         );
         Ok(keypair)
     } else {
-        let keypair = KeyPair::generate_ed25519().unwrap();
+        let keypair = KeyPair::generate_ed25519();
 
         let path = xdg.place_config_file("private.key")?;
         let f = File::create(&path)?;

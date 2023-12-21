@@ -185,24 +185,26 @@ impl russh_sftp::server::Handler for SftpSession {
                 // TODO use SSH_FX_INVALID_HANDLE
                 Err(Self::Error::Failure)
             }
-            Some(ReadDirRequest::Todo(paths)) => {
-                let mut files: Vec<File> = vec![];
-                for path in paths {
-                    let path = tr(path)?;
-                    files.push(File::new(
-                        path.file_name().into_string().unwrap(),
-                        FileAttributes::from(&tr(path.metadata())?),
-                    ));
+            Some(request) => match request {
+                ReadDirRequest::Todo(paths) => {
+                    let mut files: Vec<File> = vec![];
+                    for path in paths {
+                        let path = tr(path)?;
+                        files.push(File::new(
+                            path.file_name().into_string().unwrap(),
+                            FileAttributes::from(&tr(path.metadata())?),
+                        ));
+                    }
+
+                    *request = ReadDirRequest::Done;
+
+                    Ok(Name { id, files })
                 }
-
-                *request.unwrap() = ReadDirRequest::Done;
-
-                Ok(Name { id, files })
-            }
-            Some(ReadDirRequest::Done) => {
-                self.readdir_requests.remove(&handle);
-                Ok(Name { id, files: vec![] })
-            }
+                ReadDirRequest::Done => {
+                    self.readdir_requests.remove(&handle);
+                    Ok(Name { id, files: vec![] })
+                }
+            },
         }
     }
 

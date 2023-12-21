@@ -12,18 +12,14 @@ fn timeval_secs(secs: i64) -> libc::timeval {
     }
 }
 
-pub fn apply_file_attributes(path: String, attrs: &FileAttributes) {
+pub fn apply_file_attributes(path: String, attrs: &FileAttributes) -> anyhow::Result<()> {
     if let Some(size) = attrs.size {
-        let file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(&path)
-            .unwrap();
-        file.set_len(size).unwrap();
+        let file = OpenOptions::new().read(true).write(true).open(&path)?;
+        file.set_len(size)?;
     }
 
-    let md = std::fs::metadata(&path).unwrap();
-    let cpath = CString::new(path.as_bytes()).unwrap();
+    let md = std::fs::metadata(&path)?;
+    let cpath = CString::new(path.as_bytes())?;
 
     // modify owner/group
     {
@@ -49,16 +45,16 @@ pub fn apply_file_attributes(path: String, attrs: &FileAttributes) {
     }
 
     if let Some(perms) = attrs.permissions {
-        std::fs::set_permissions(path, PermissionsExt::from_mode(perms)).unwrap();
+        std::fs::set_permissions(path, PermissionsExt::from_mode(perms))?;
     }
 
     let mut times = (md.atime(), md.mtime());
     unsafe {
         if let Some(atime) = attrs.atime {
-            times.0 = atime.try_into().unwrap();
+            times.0 = atime.try_into()?;
         }
         if let Some(mtime) = attrs.mtime {
-            times.1 = mtime.try_into().unwrap();
+            times.1 = mtime.try_into()?;
         }
         if times != (md.atime(), md.mtime()) {
             libc::utimes(
@@ -67,6 +63,7 @@ pub fn apply_file_attributes(path: String, attrs: &FileAttributes) {
             );
         }
     }
+    Ok(())
 }
 
 pub fn metadata_to_file_attributes(md: &Metadata) -> FileAttributes {

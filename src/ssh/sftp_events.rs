@@ -32,6 +32,16 @@ pub struct SftpSession {
     handle_counter: u32,
 }
 
+/// same as below, but for anyhow
+fn tr_ah<T>(res: anyhow::Result<T>) -> Result<T, StatusCode> {
+    match res {
+        Ok(value) => Ok(value),
+        Err(err) => {
+            log::error!("An error occured: {err}");
+            Err(StatusCode::Failure)
+        }
+    }
+}
 /// "tr" means "translate"
 /// This functions translates any kind of error into a StatusCode
 /// If someone knows how to do this using the ? operator, please open a PR
@@ -120,7 +130,7 @@ impl russh_sftp::server::Handler for SftpSession {
         attrs: FileAttributes,
     ) -> Result<Status, Self::Error> {
         log::info!("setstat({}, {}, {:?})", id, path, attrs);
-        apply_file_attributes(path, &attrs);
+        tr_ah(apply_file_attributes(path, &attrs))?;
         Ok(Status {
             id,
             status_code: StatusCode::Ok,

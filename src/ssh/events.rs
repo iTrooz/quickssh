@@ -37,18 +37,6 @@ impl server::Handler for Server {
         Ok((self, true, session))
     }
 
-    async fn env_request(
-        self,
-        channel_id: ChannelId,
-        variable_name: &str,
-        variable_value: &str,
-        session: Session,
-    ) -> Result<(Self, Session), Self::Error> {
-        log::debug!("env_request: channel_id = {channel_id} variable_name = {variable_name} variable_value = {variable_value}");
-        // TODO
-        Ok((self, session))
-    }
-
     async fn exec_request(
         self,
         channel_id: ChannelId,

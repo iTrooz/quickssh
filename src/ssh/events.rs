@@ -153,8 +153,11 @@ impl server::Handler for Server {
         // close session when process exits?
         let session_handle = session.handle().clone();
         tokio::spawn(async move {
-            let _ = child.wait().await;
-            // TODO: handle exit code?
+            let exit_status = child.wait().await.unwrap();
+            session_handle
+                .exit_status_request(channel_id, exit_status.code().unwrap_or(1) as u32)
+                .await
+                .unwrap();
             let _ = session_handle.close(channel_id).await;
         });
 

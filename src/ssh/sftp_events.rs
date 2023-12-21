@@ -6,13 +6,13 @@ use russh_sftp::protocol::{
 };
 use std::{
     collections::HashMap,
-    fs::{Metadata, OpenOptions},
+    fs::{Metadata, OpenOptions, ReadDir},
     io::ErrorKind,
     os::unix::fs::{FileExt, MetadataExt},
 };
 
 enum ReadDirRequest {
-    Todo(String),
+    Todo(ReadDir),
     Done,
 }
 
@@ -119,8 +119,22 @@ impl russh_sftp::server::Handler for SftpSession {
     async fn opendir(&mut self, id: u32, path: String) -> Result<Handle, Self::Error> {
         info!("opendir({}, {})", id, path);
         let handle = self.new_handle();
+
+        let paths_res = std::fs::read_dir(path);
+
+        let paths = match paths_res {
+            Ok(paths) => paths,
+            Err(ref err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
+                return Err(StatusCode::PermissionDenied);
+            }
+            Err(ref err) => {
+                log::error!("opendir({}, {}) failed: {}", id, handle, err);
+                return Err(StatusCode::Failure);
+            }
+        };
+
         self.readdir_requests
-            .insert(handle.clone(), ReadDirRequest::Todo(path.clone()));
+            .insert(handle.clone(), ReadDirRequest::Todo(paths));
         Ok(Handle { id, handle })
     }
 
@@ -133,20 +147,7 @@ impl russh_sftp::server::Handler for SftpSession {
                 // TODO use SSH_FX_INVALID_HANDLE
                 Err(Self::Error::Failure)
             }
-            Some(ReadDirRequest::Todo(path)) => {
-                let paths_res = std::fs::read_dir(path);
-
-                let paths = match paths_res {
-                    Ok(paths) => paths,
-                    Err(ref err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
-                        return Err(StatusCode::PermissionDenied);
-                    }
-                    Err(ref err) => {
-                        log::error!("readdir({}, {}) failed: {}", id, handle, err);
-                        return Err(StatusCode::Failure);
-                    }
-                };
-
+            Some(ReadDirRequest::Todo(paths)) => {
                 let mut files: Vec<File> = vec![];
                 for path in paths {
                     let path = path.unwrap();

@@ -234,7 +234,7 @@ impl server::Handler for Server {
         if user == self.options.user {
             let result = match self.options.password {
                 Some(Password::Raw(ref right_password)) => right_password == password,
-                Some(Password::Su) => su_login(&self.options.user, password),
+                Some(Password::Su) => su_login(&self.options.user, password).unwrap(),
                 None => false,
             };
             if result {

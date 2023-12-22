@@ -3,7 +3,9 @@ use std::{
     process::{Command, Stdio},
 };
 
-pub fn su_login(user: &str, password: &str) -> bool {
+use anyhow::Context;
+
+pub fn su_login(user: &str, password: &str) -> anyhow::Result<bool> {
     let mut process = if users::get_current_uid() == 0 {
         Command::new("su")
             .arg("nobody")
@@ -14,8 +16,7 @@ pub fn su_login(user: &str, password: &str) -> bool {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .spawn()
-            .expect("Failed to execute command")
+            .spawn()?
     } else {
         Command::new("su")
             .arg(user)
@@ -24,27 +25,27 @@ pub fn su_login(user: &str, password: &str) -> bool {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .spawn()
-            .expect("Failed to execute command")
+            .spawn()?
     };
 
-    let mut stdin = process.stdin.take().expect("Failed to open stdin");
-    stdin
-        .write_all((password.to_owned() + "\n").as_bytes())
-        .expect("Failed to write to stdin");
-    stdin.flush().expect("Failed to flush stdin");
+    let mut stdin = process
+        .stdin
+        .take()
+        .context("Could not get su process stdin")?;
+    stdin.write_all((password.to_owned() + "\n").as_bytes())?;
+    stdin.flush()?;
 
-    let output = process.wait_with_output().expect("Failed to read stdout");
+    let output = process.wait_with_output()?;
 
     // verify the exit code is right (if the command has indeed been existed)
     if let Some(code) = output.status.code() {
         if code == 101 {
             // just to make sure, verify the output for anything not normal
-            let stdout = String::from_utf8(output.stdout).unwrap();
-            let stderr = String::from_utf8(output.stderr).unwrap();
-            return stdout.is_empty() && stderr == "Password: ";
+            let stdout = String::from_utf8(output.stdout)?;
+            let stderr = String::from_utf8(output.stderr)?;
+            return Ok(stdout.is_empty() && stderr == "Password: ");
         }
     }
 
-    false
+    Ok(false)
 }

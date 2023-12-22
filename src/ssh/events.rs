@@ -7,7 +7,7 @@ use russh_keys::*;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use super::init::Password;
-use super::su_auth::su_login;
+use super::su_login::su_login;
 use super::Server;
 
 impl server::Server for Server {

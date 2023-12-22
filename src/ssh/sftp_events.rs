@@ -27,7 +27,7 @@ impl SftpSession {
 #[derive(Default)]
 pub struct SftpSession {
     version: Option<u32>,
-    readdir_requests: HashMap<String, ReadDirRequest>,
+    dir_handles: HashMap<String, ReadDirRequest>,
     file_handles: HashMap<String, std::fs::File>,
     handle_counter: u32,
 }
@@ -162,7 +162,7 @@ impl russh_sftp::server::Handler for SftpSession {
     async fn close(&mut self, id: u32, handle: String) -> Result<Status, Self::Error> {
         info!("close({}, {})", id, handle);
         if self.file_handles.remove(&handle).is_some()
-            || self.readdir_requests.remove(&handle).is_some()
+            || self.dir_handles.remove(&handle).is_some()
         {
             Ok(status_ok(id))
         } else {
@@ -187,7 +187,7 @@ impl russh_sftp::server::Handler for SftpSession {
             }
         };
 
-        self.readdir_requests
+        self.dir_handles
             .insert(handle.clone(), ReadDirRequest::Todo(paths));
         Ok(Handle { id, handle })
     }
@@ -195,7 +195,7 @@ impl russh_sftp::server::Handler for SftpSession {
     async fn readdir(&mut self, id: u32, handle: String) -> Result<Name, Self::Error> {
         info!("readdir({}, {})", id, handle);
 
-        let request = self.readdir_requests.get_mut(&handle);
+        let request = self.dir_handles.get_mut(&handle);
         match request {
             None => {
                 log::warn!("Client requested readdir() on non-existant handle: {handle}");

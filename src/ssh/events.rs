@@ -6,6 +6,8 @@ use russh::*;
 use russh_keys::*;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+use super::init::Password;
+use super::su_auth::su_login;
 use super::Server;
 
 impl server::Server for Server {
@@ -223,11 +225,18 @@ impl server::Handler for Server {
 
     async fn auth_password(self, user: &str, password: &str) -> Result<(Self, Auth), Self::Error> {
         log::info!("auth_password: credentials: {}, {}", user, password);
-        if let Some(ref right_password) = self.options.password {
-            if user == self.options.user && password == right_password {
+
+        if user == self.options.user {
+            let result = match self.options.password {
+                Some(Password::Raw(ref right_password)) => right_password == password,
+                Some(Password::Su) => su_login(&self.options.user, password),
+                None => false,
+            };
+            if result {
                 return Ok((self, Auth::Accept));
             }
         }
+
         Ok((
             self,
             Auth::Reject {

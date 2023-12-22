@@ -15,9 +15,15 @@ pub struct Server {
 }
 
 #[derive(Clone)]
+pub enum Password {
+    Raw(String),
+    Su,
+}
+
+#[derive(Clone)]
 pub struct ServerOptions {
     pub user: String,
-    pub password: Option<String>,
+    pub password: Option<Password>,
     pub pubkeys: Vec<key::PublicKey>,
     pub shell: String,
     pub no_shell: bool,
@@ -26,10 +32,7 @@ pub struct ServerOptions {
 }
 
 pub async fn start_ssh_server(options: ServerOptions, keypair: KeyPair) -> anyhow::Result<()> {
-    let mut methods_list: Vec<MethodSet> = vec![];
-    if options.password.is_some() {
-        methods_list.push(MethodSet::PASSWORD);
-    }
+    let mut methods_list: Vec<MethodSet> = vec![MethodSet::PASSWORD];
     if !options.pubkeys.is_empty() {
         methods_list.push(MethodSet::PUBLICKEY);
     }

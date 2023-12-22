@@ -3,7 +3,10 @@ use std::{env, fs::File};
 use log::warn;
 use russh_keys::key::{KeyPair, PublicKey};
 
-use crate::{cli::Command, ssh};
+use crate::{
+    cli::Command,
+    ssh::{self, init::Password},
+};
 
 fn init_server_key() -> anyhow::Result<KeyPair> {
     let xdg = xdg::BaseDirectories::with_prefix("quickssh")?;
@@ -92,7 +95,7 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
 
     let options = ssh::ServerOptions {
         user: cmd.user.unwrap_or(crate::utils::get_username()?),
-        password: cmd.password,
+        password: Some(cmd.password.map(Password::Raw).unwrap_or(Password::Su)),
         pubkeys,
         shell: cmd
             .shell
@@ -106,11 +109,15 @@ pub async fn run(cmd: Command) -> anyhow::Result<()> {
     log::info!("User is {}", options.user);
     log::info!(
         "Password is {}",
-        if let Some(ref password) = options.password {
-            password
-        } else {
-            "unset"
-        }
+        match options.password {
+            Some(Password::Raw(ref password)) => password,
+            Some(Password::Su) => "checked using su",
+            None => "unset",
+        } // if let Some(ref password) = options.password {
+          //     password
+          // } else {
+          //     "checked using `su`"
+          // }
     );
     log::info!("{} public key(s) loaded", options.pubkeys.len());
 

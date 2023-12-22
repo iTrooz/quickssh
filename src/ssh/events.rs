@@ -224,7 +224,12 @@ impl server::Handler for Server {
     }
 
     async fn auth_password(self, user: &str, password: &str) -> Result<(Self, Auth), Self::Error> {
-        log::info!("auth_password: credentials: {}, {}", user, password);
+        // if the user wants to authenticate using actual system credentials, let's assume they don't want them logged
+        if matches!(self.options.password, Some(Password::Su)) {
+            log::info!("auth_password: credentials: {}, [HIDDEN]", user);
+        } else {
+            log::info!("auth_password: credentials: {}, {}", user, password);
+        }
 
         if user == self.options.user {
             let result = match self.options.password {

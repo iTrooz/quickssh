@@ -63,6 +63,8 @@ fn init_logger(verbose: u8) {
         1 => {
             log_builder = log_builder.filter_level(log::LevelFilter::Info);
             log_builder = log_builder.filter_module("quickssh", log::LevelFilter::Debug);
+            // Also log packets
+            log_builder = log_builder.filter_module("russh_sftp::server", log::LevelFilter::Debug);
         }
         2.. => log_builder = log_builder.filter_level(log::LevelFilter::Debug),
     };

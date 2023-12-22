@@ -127,6 +127,7 @@ impl russh_sftp::server::Handler for SftpSession {
                 }
             }
         } else {
+            log::warn!("Client requested fstat() on non-existant handle: {handle}");
             // TODO use SSH_FX_INVALID_HANDLE
             Err(Self::Error::Failure)
         }
@@ -191,6 +192,7 @@ impl russh_sftp::server::Handler for SftpSession {
         let request = self.readdir_requests.get_mut(&handle);
         match request {
             None => {
+                log::warn!("Client requested readdir() on non-existant handle: {handle}");
                 // TODO use SSH_FX_INVALID_HANDLE
                 Err(Self::Error::Failure)
             }
@@ -284,6 +286,7 @@ impl russh_sftp::server::Handler for SftpSession {
                 Ok(Data { id, data })
             }
         } else {
+            log::warn!("Client requested read() on non-existant handle: {handle}");
             // TODO use SSH_FX_INVALID_HANDLE
             Err(Self::Error::Failure)
         }
@@ -308,6 +311,7 @@ impl russh_sftp::server::Handler for SftpSession {
 
             Ok(status_ok(id))
         } else {
+            log::warn!("Client requested write() on non-existant handle: {handle}");
             // TODO use SSH_FX_INVALID_HANDLE
             Err(Self::Error::Failure)
         }

@@ -4,15 +4,29 @@ use std::{
 };
 
 pub fn su_login(user: &str, password: &str) -> bool {
-    let mut process = Command::new("su")
-        .arg(user)
-        .arg("-c")
-        .arg("exit 101")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .expect("Failed to execute command");
+    let mut process = if users::get_current_uid() == 0 {
+        Command::new("su")
+            .arg("nobody")
+            .arg("-s")
+            .arg("/bin/sh")
+            .arg("-c")
+            .arg("su -c 'exit 101'")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("Failed to execute command")
+    } else {
+        Command::new("su")
+            .arg(user)
+            .arg("-c")
+            .arg("exit 101")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("Failed to execute command")
+    };
 
     let mut stdin = process.stdin.take().expect("Failed to open stdin");
     stdin

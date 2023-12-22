@@ -219,8 +219,7 @@ impl russh_sftp::server::Handler for SftpSession {
                     Ok(Name { id, files })
                 }
                 ReadDirRequest::Done => {
-                    self.readdir_requests.remove(&handle);
-                    Ok(Name { id, files: vec![] })
+                    Err(StatusCode::Eof)
                 }
             },
         }

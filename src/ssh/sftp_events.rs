@@ -161,7 +161,13 @@ impl russh_sftp::server::Handler for SftpSession {
 
     async fn close(&mut self, id: u32, handle: String) -> Result<Status, Self::Error> {
         info!("close({}, {})", id, handle);
-        Ok(status_ok(id))
+        if self.file_handles.remove(&handle).is_some()
+            || self.readdir_requests.remove(&handle).is_some()
+        {
+            Ok(status_ok(id))
+        } else {
+            Err(StatusCode::Failure)
+        }
     }
 
     async fn opendir(&mut self, id: u32, path: String) -> Result<Handle, Self::Error> {
@@ -218,9 +224,7 @@ impl russh_sftp::server::Handler for SftpSession {
 
                     Ok(Name { id, files })
                 }
-                ReadDirRequest::Done => {
-                    Err(StatusCode::Eof)
-                }
+                ReadDirRequest::Done => Err(StatusCode::Eof),
             },
         }
     }

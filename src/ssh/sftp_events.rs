@@ -161,8 +161,7 @@ impl russh_sftp::server::Handler for SftpSession {
 
     async fn close(&mut self, id: u32, handle: String) -> Result<Status, Self::Error> {
         info!("close({}, {})", id, handle);
-        if self.file_handles.remove(&handle).is_some()
-            || self.dir_handles.remove(&handle).is_some()
+        if self.file_handles.remove(&handle).is_some() || self.dir_handles.remove(&handle).is_some()
         {
             Ok(status_ok(id))
         } else {

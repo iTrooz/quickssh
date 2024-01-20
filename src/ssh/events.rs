@@ -38,69 +38,6 @@ impl server::Handler for Server {
         }
         Ok((self, true, session))
     }
-
-    async fn exec_request(
-        self,
-        channel_id: ChannelId,
-        command_bytes: &[u8],
-        mut session: Session,
-    ) -> Result<(Self, Session), Self::Error> {
-        let command = String::from_utf8(command_bytes.to_vec())?;
-        log::info!("exec_request: channel_id = {channel_id} command = {command}");
-
-        // TODO: detect ssh -t vs ssh without -t (allocate pty or not)
-
-        // create pty
-        let pty = pty_process::Pty::new().unwrap();
-        if let Err(e) = pty.resize(pty_process::Size::new(24, 80)) {
-            log::error!("pty.resize failed: {:?}", e);
-        }
-
-        // get pts from pty
-        let pts = pty.pts()?;
-
-        // split pty into reader + writer
-        let (mut pty_reader, pty_writer) = pty.into_split();
-
-        // insert pty_reader
-        self.channel_pty_writers
-            .lock()
-            .await
-            .insert(channel_id, pty_writer);
-
-        // pty_reader.read() -> session_handle.data()
-        let session_handle = session.handle();
-        tokio::spawn(async move {
-            let mut buffer = vec![0; 1024];
-            while let Ok(size) = pty_reader.read(&mut buffer).await {
-                if size == 0 {
-                    log::debug!("pty_reader read 0");
-                    // TODO: kill pty + command?
-                    let _ = session_handle.close(channel_id).await;
-                    break;
-                }
-                let _ = session_handle
-                    .data(channel_id, CryptoVec::from_slice(&buffer[0..size]))
-                    .await;
-            }
-        });
-
-        // Spawn a new shell process in pty
-        let mut child = pty_process::Command::new(&self.options.shell)
-            .arg("-c")
-            .arg(command)
-            .spawn(&pts)
-            .map_err(anyhow::Error::new)?;
-
-        // mark request success
-        session.request_success();
-
-        // wait for command to finish
-        let _ = child.wait().await?;
-
-        Ok((self, session))
-    }
-
     async fn shell_request(
         self,
         channel_id: ChannelId,
